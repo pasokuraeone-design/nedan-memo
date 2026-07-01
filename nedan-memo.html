@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ねだんメモ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+  :root {
+    --red: #E8192C;
+    --red-light: #FF4A5A;
+    --cream: #FFF8F0;
+    --warm-white: #FFFCF8;
+    --ink: #1A1A1A;
+    --gray: #888;
+    --border: #E8DDD0;
+    --yellow: #FFD700;
+    --green: #2ECC71;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: var(--red);
+    padding: 14px 16px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(232,25,44,0.3);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .logo {
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .logo span {
+    background: var(--yellow);
+    color: var(--red);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-right: 4px;
+    font-size: 13px;
+    vertical-align: middle;
+    font-weight: 900;
+  }
+  .add-btn {
+    background: #fff;
+    color: var(--red);
+    border: none;
+    border-radius: 20px;
+    padding: 7px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* ===== SEARCH ===== */
+  .search-bar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    position: sticky;
+    top: 57px;
+    z-index: 99;
+  }
+  .search-bar-inner {
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .search-bar input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 24px;
+    padding: 9px 16px 9px 40px;
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--cream);
+    outline: none;
+    color: var(--ink);
+  }
+  .search-bar input:focus { border-color: var(--red); }
+  .search-icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray);
+    font-size: 17px;
+  }
+
+  /* ===== TABS ===== */
+  .tabs {
+    background: #fff;
+    border-bottom: 2px solid var(--border);
+    padding: 0 16px;
+  }
+  .tabs-inner {
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    gap: 4px;
+  }
+  .tab {
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray);
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    font-family: inherit;
+  }
+  .tab.active {
+    color: var(--red);
+    border-bottom-color: var(--red);
+  }
+
+  /* ===== MAIN ===== */
+  main {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 12px 16px 80px;
+  }
+
+  /* ===== EMPTY STATE ===== */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty p { font-size: 15px; line-height: 1.6; }
+  .empty strong { color: var(--ink); }
+
+  /* ===== PRODUCT GROUP ===== */
+  .product-group {
+    background: #fff;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .product-header {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .product-name {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+    flex: 1;
+  }
+  .product-category {
+    font-size: 11px;
+    background: #F0F0F0;
+    border-radius: 10px;
+    padding: 2px 8px;
+    color: var(--gray);
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+
+  /* ===== PRICE ROWS ===== */
+  .price-rows { padding: 8px 0 4px; }
+  .price-row {
+    padding: 7px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+  .price-row:not(:last-child) {
+    border-bottom: 1px solid #F5F0EB;
+  }
+  .price-rank {
+    font-size: 10px;
+    font-weight: 900;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .price-rank.rank-1 { color: var(--red); }
+  .price-rank.rank-2 { color: #FF8C00; }
+  .price-rank.rank-3 { color: var(--gray); }
+
+  .price-bar-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+  .store-date-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .store-name {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+  .price-date {
+    font-size: 11px;
+    color: var(--gray);
+    white-space: nowrap;
+  }
+  .price-bar-bg {
+    background: #F5F0EB;
+    border-radius: 3px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .price-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--red), var(--red-light));
+    transition: width 0.4s ease;
+  }
+  .price-bar-fill.sale {
+    background: linear-gradient(90deg, #F90, #FFD700);
+  }
+
+  .price-amount {
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--ink);
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 60px;
+    text-align: right;
+  }
+  .price-amount.sale-price { color: var(--red); }
+  .sale-badge {
+    font-size: 10px;
+    background: var(--red);
+    color: #fff;
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+
+  .price-row-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .icon-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px;
+    line-height: 1;
+    opacity: 0.5;
+  }
+  .icon-btn:hover { opacity: 1; }
+
+  /* ===== MODAL ===== */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: flex-end;
+  }
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 40px;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 18px;
+  }
+  .modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gray);
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+  }
+  .field input, .field select {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--cream);
+    color: var(--ink);
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--red); }
+
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+
+  .sale-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .sale-toggle input[type=checkbox] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--red);
+    cursor: pointer;
+  }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-cancel {
+    flex: 1;
+    background: #F0F0F0;
+    color: var(--ink);
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-save {
+    flex: 2;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .suggest-list {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    margin-top: -10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    display: none;
+  }
+  .suggest-list.open { display: block; }
+  .suggest-item {
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .suggest-item:last-child { border-bottom: none; }
+  .suggest-item:hover { background: var(--cream); }
+
+  /* ===== SORT/FILTER ===== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--gray);
+  }
+  .filter-chip.active {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+  }
+
+  .result-count {
+    font-size: 12px;
+    color: var(--gray);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo"><span>¥</span>ねだんメモ</div>
+    <button class="add-btn" onclick="openModal()">＋ 追加</button>
+  </div>
+</header>
+
+<div class="search-bar">
+  <div class="search-bar-inner">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="商品名・お店で検索" oninput="renderAll()">
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tabs-inner">
+    <button class="tab active" onclick="setTab('all',this)">すべて</button>
+    <button class="tab" onclick="setTab('sale',this)">セール中</button>
+    <button class="tab" onclick="setTab('recent',this)">最近追加</button>
+  </div>
+</div>
+
+<main>
+  <div class="toolbar">
+    <span class="result-count" id="resultCount"></span>
+    <button class="filter-chip active" onclick="setSort('name',this)">商品順</button>
+    <button class="filter-chip" onclick="setSort('cheapest',this)">最安値順</button>
+    <button class="filter-chip" onclick="setSort('recent',this)">更新順</button>
+  </div>
+  <div id="listArea"></div>
+</main>
+
+<!-- ADD/EDIT MODAL -->
+<div class="overlay" id="overlay" onclick="closeModalIfBg(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">価格を追加</div>
+
+    <div class="field">
+      <label>商品名・ブランド</label>
+      <input type="text" id="fProduct" placeholder="例）アタック　抗菌EX 850g" oninput="showSuggest()" autocomplete="off">
+      <div class="suggest-list" id="suggestList"></div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>カテゴリ</label>
+        <select id="fCategory">
+          <option value="">なし</option>
+          <option value="洗剤">洗剤</option>
+          <option value="食料品">食料品</option>
+          <option value="飲料">飲料</option>
+          <option value="日用品">日用品</option>
+          <option value="調味料">調味料</option>
+          <option value="冷凍食品">冷凍食品</option>
+          <option value="お菓子">お菓子</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>お店</label>
+        <input type="text" id="fStore" placeholder="例）マックスバリュ" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>値段（円）</label>
+        <input type="number" id="fPrice" placeholder="198" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>日付</label>
+        <input type="date" id="fDate">
+      </div>
+    </div>
+
+    <label class="sale-toggle">
+      <input type="checkbox" id="fSale">
+      🏷️ セール・タイムセール・特売
+    </label>
+
+    <div class="field">
+      <label>メモ（任意）</label>
+      <input type="text" id="fNote" placeholder="例）会員価格、クーポン使用">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveEntry()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const STORAGE_KEY = 'nedanmemo_v1';
+let data = [];
+let editingId = null;
+let currentTab = 'all';
+let currentSort = 'name';
+
+function load() {
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { data = []; }
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+load();
+
+// ===== MODAL =====
+function openModal(entry) {
+  editingId = entry ? entry.id : null;
+  document.getElementById('modalTitle').textContent = entry ? '価格を編集' : '価格を追加';
+  document.getElementById('fProduct').value = entry ? entry.product : '';
+  document.getElementById('fCategory').value = entry ? (entry.category || '') : '';
+  document.getElementById('fStore').value = entry ? entry.store : '';
+  document.getElementById('fPrice').value = entry ? entry.price : '';
+  document.getElementById('fDate').value = entry ? entry.date : todayStr();
+  document.getElementById('fSale').checked = entry ? !!entry.sale : false;
+  document.getElementById('fNote').value = entry ? (entry.note || '') : '';
+  document.getElementById('suggestList').classList.remove('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+}
+function closeModalIfBg(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function saveEntry() {
+  const product = document.getElementById('fProduct').value.trim();
+  const store = document.getElementById('fStore').value.trim();
+  const price = parseInt(document.getElementById('fPrice').value);
+  const date = document.getElementById('fDate').value;
+  if (!product || !store || isNaN(price) || !date) {
+    alert('商品名・お店・値段・日付は必須です');
+    return;
+  }
+  if (editingId) {
+    const idx = data.findIndex(e => e.id === editingId);
+    if (idx !== -1) {
+      data[idx] = { ...data[idx], product, category: document.getElementById('fCategory').value, store, price, date, sale: document.getElementById('fSale').checked, note: document.getElementById('fNote').value.trim(), updated: Date.now() };
+    }
+  } else {
+    data.push({ id: Date.now().toString(), product, category: document.getElementById('fCategory').value, store, price, date, sale: document.getElementById('fSale').checked, note: document.getElementById('fNote').value.trim(), updated: Date.now() });
+  }
+  save();
+  closeModal();
+  renderAll();
+}
+
+function deleteEntry(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  data = data.filter(e => e.id !== id);
+  save();
+  renderAll();
+}
+
+// ===== TABS / SORT =====
+function setTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+function setSort(sort, btn) {
+  currentSort = sort;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+
+// ===== SUGGEST =====
+function showSuggest() {
+  const val = document.getElementById('fProduct').value.trim();
+  const list = document.getElementById('suggestList');
+  if (!val) { list.classList.remove('open'); return; }
+  const names = [...new Set(data.map(e => e.product))].filter(n => n.includes(val) && n !== val);
+  if (!names.length) { list.classList.remove('open'); return; }
+  list.innerHTML = names.slice(0,5).map(n => `<div class="suggest-item" onclick="selectSuggest('${n.replace(/'/g,"\\'")}')">  ${n}</div>`).join('');
+  list.classList.add('open');
+}
+function selectSuggest(name) {
+  document.getElementById('fProduct').value = name;
+  document.getElementById('suggestList').classList.remove('open');
+  // auto-fill category if known
+  const ex = data.find(e => e.product === name);
+  if (ex && ex.category) document.getElementById('fCategory').value = ex.category;
+}
+
+// ===== RENDER =====
+function renderAll() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+
+  let filtered = data.filter(e => {
+    if (currentTab === 'sale') return e.sale;
+    if (currentTab === 'recent') {
+      const d = new Date(e.date);
+      const now = new Date();
+      const diff = (now - d) / (1000*60*60*24);
+      return diff <= 14;
+    }
+    return true;
+  });
+
+  if (q) {
+    filtered = filtered.filter(e =>
+      e.product.toLowerCase().includes(q) ||
+      e.store.toLowerCase().includes(q) ||
+      (e.category && e.category.toLowerCase().includes(q))
+    );
+  }
+
+  // Group by product
+  const groups = {};
+  filtered.forEach(e => {
+    if (!groups[e.product]) groups[e.product] = [];
+    groups[e.product].push(e);
+  });
+
+  // Sort groups
+  let groupKeys = Object.keys(groups);
+  if (currentSort === 'cheapest') {
+    groupKeys.sort((a,b) => Math.min(...groups[a].map(e=>e.price)) - Math.min(...groups[b].map(e=>e.price)));
+  } else if (currentSort === 'recent') {
+    groupKeys.sort((a,b) => Math.max(...groups[b].map(e=>e.updated||0)) - Math.max(...groups[a].map(e=>e.updated||0)));
+  } else {
+    groupKeys.sort((a,b) => a.localeCompare(b, 'ja'));
+  }
+
+  document.getElementById('resultCount').textContent = groupKeys.length ? `${groupKeys.length}商品` : '';
+
+  const area = document.getElementById('listArea');
+  if (!groupKeys.length) {
+    area.innerHTML = `<div class="empty">
+      <div class="empty-icon">🛒</div>
+      <p>${data.length === 0 ? '<strong>＋ 追加</strong>ボタンから<br>最初の価格を登録しよう！' : '見つかりませんでした'}</p>
+    </div>`;
+    return;
+  }
+
+  area.innerHTML = groupKeys.map(product => {
+    const entries = groups[product].sort((a,b) => a.price - b.price);
+    const minPrice = entries[0].price;
+    const maxPrice = entries[entries.length-1].price;
+    const category = entries[0].category || '';
+
+    const priceRows = entries.map((e, i) => {
+      const barPct = maxPrice === minPrice ? 100 : Math.round(((e.price - minPrice) / (maxPrice - minPrice)) * 80 + 20);
+      const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-3';
+      const rankLabel = i === 0 ? '最安' : `${i+1}位`;
+      const dateLabel = e.date ? e.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$2/$3') : '';
+      return `<div class="price-row">
+        <div class="price-rank ${rankClass}">${rankLabel}</div>
+        <div class="price-bar-wrap">
+          <div class="store-date-row">
+            <span class="store-name">${esc(e.store)}</span>
+            <span class="price-date">${dateLabel}${e.note ? ' · '+esc(e.note) : ''}</span>
+          </div>
+          <div class="price-bar-bg">
+            <div class="price-bar-fill${e.sale?' sale':''}" style="width:${barPct}%"></div>
+          </div>
+        </div>
+        <div class="price-amount${e.sale?' sale-price':''}">
+          ¥${e.price.toLocaleString()}${e.sale?'<span class="sale-badge">特売</span>':''}
+        </div>
+        <div class="price-row-actions">
+          <button class="icon-btn" onclick="openModal(${JSON.stringify(e).replace(/"/g,'&quot;')})" title="編集">✏️</button>
+          <button class="icon-btn" onclick="deleteEntry('${e.id}')" title="削除">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="product-group">
+      <div class="product-header">
+        <div class="product-name">${esc(product)}</div>
+        ${category ? `<span class="product-category">${esc(category)}</span>` : ''}
+      </div>
+      <div class="price-rows">${priceRows}</div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+renderAll();
+</script>
+</body>
+</html>
