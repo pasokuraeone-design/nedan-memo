@@ -43,12 +43,14 @@
     justify-content: space-between;
     max-width: 480px;
     margin: 0 auto;
+    gap: 8px;
   }
   .logo {
     font-size: 22px;
     font-weight: 900;
     color: #fff;
     letter-spacing: -0.5px;
+    flex-shrink: 0;
   }
   .logo span {
     background: var(--yellow);
@@ -59,6 +61,11 @@
     font-size: 13px;
     vertical-align: middle;
     font-weight: 900;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .add-btn {
     background: #fff;
@@ -71,6 +78,101 @@
     cursor: pointer;
     font-family: inherit;
   }
+  .user-btn {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.5);
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+
+  /* ===== LOGIN OVERLAY ===== */
+  .login-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--cream);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 32px;
+  }
+  .login-overlay.open { display: flex; }
+  .login-logo {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--red);
+    margin-bottom: 8px;
+  }
+  .login-logo span {
+    background: var(--yellow);
+    color: var(--red);
+    border-radius: 6px;
+    padding: 2px 8px;
+    margin-right: 6px;
+    font-size: 20px;
+    vertical-align: middle;
+  }
+  .login-subtitle {
+    font-size: 14px;
+    color: var(--gray);
+    margin-bottom: 40px;
+    line-height: 1.6;
+  }
+  .google-btn {
+    background: #fff;
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .google-btn:hover { border-color: var(--red); }
+  .google-btn img { width: 22px; height: 22px; }
+  .login-note {
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--gray);
+    line-height: 1.6;
+  }
+
+  /* ===== LOADING ===== */
+  .loading-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--cream);
+    z-index: 290;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .loading-screen.open { display: flex; }
+  .loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-screen p { font-size: 14px; color: var(--gray); }
 
   /* ===== SEARCH ===== */
   .search-bar {
@@ -393,6 +495,10 @@
     cursor: pointer;
     font-family: inherit;
   }
+  .btn-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 
   .suggest-list {
     background: #fff;
@@ -448,14 +554,73 @@
     margin-left: auto;
     white-space: nowrap;
   }
+
+  /* ===== SIGN OUT CONFIRM ===== */
+  .signout-area {
+    text-align: center;
+    padding: 40px 20px 20px;
+  }
+  .signout-link {
+    font-size: 12px;
+    color: var(--gray);
+    text-decoration: underline;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+  }
 </style>
 </head>
 <body>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+// ============================================================
+// ★ ここにFirebaseコンソールの設定を貼り付けてください ★
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyB_rdG_JAzNBXZWrbl8n9z6b1aW92zseac",
+  authDomain: "nedan-memo-2f5c6.firebaseapp.com",
+  projectId: "nedan-memo-2f5c6",
+  storageBucket: "nedan-memo-2f5c6.firebasestorage.app",
+  messagingSenderId: "450148725653",
+  appId: "1:450148725653:web:1da4c0f014fe1d98ddbc9c"
+};
+// ============================================================
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+</script>
+
+<!-- ローディング画面 -->
+<div class="loading-screen open" id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <p>読み込み中...</p>
+</div>
+
+<!-- ログイン画面 -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-logo"><span>¥</span>ねだんメモ</div>
+  <p class="login-subtitle">スーパーの値段を記録・比較する<br>あなただけのメモ帳</p>
+  <button class="google-btn" onclick="signInWithGoogle()">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+    Googleでログイン
+  </button>
+  <p class="login-note">Googleアカウントでログインすると<br>どのデバイスからでもデータにアクセスできます</p>
+</div>
+
 <header>
   <div class="header-inner">
     <div class="logo"><span>¥</span>ねだんメモ</div>
-    <button class="add-btn" onclick="openModal()">＋ 追加</button>
+    <div class="header-right">
+      <button class="add-btn" onclick="openModal()">＋ 追加</button>
+      <button class="user-btn" id="userBtn" onclick="handleUserBtnClick()" style="display:none"></button>
+    </div>
   </div>
 </header>
 
@@ -482,6 +647,9 @@
     <button class="filter-chip" onclick="setSort('recent',this)">更新順</button>
   </div>
   <div id="listArea"></div>
+  <div class="signout-area">
+    <button class="signout-link" id="signoutLink" onclick="signOut()" style="display:none">ログアウト</button>
+  </div>
 </main>
 
 <!-- ADD/EDIT MODAL -->
@@ -540,29 +708,86 @@
 
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
-      <button class="btn-save" onclick="saveEntry()">保存する</button>
+      <button class="btn-save" id="saveBtn" onclick="saveEntry()">保存する</button>
     </div>
   </div>
 </div>
 
 <script>
-// ===== DATA =====
-const STORAGE_KEY = 'nedanmemo_v1';
+// ===== STATE =====
 let data = [];
 let editingId = null;
 let currentTab = 'all';
 let currentSort = 'name';
+let currentUser = null;
+let entriesRef = null;
+let unsubscribeSnapshot = null;
 
-function load() {
-  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { data = []; }
+// ===== AUTH =====
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err => {
+    console.error(err);
+    alert('ログインに失敗しました: ' + err.message);
+  });
 }
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+function signOut() {
+  if (!confirm('ログアウトしますか？')) return;
+  auth.signOut();
 }
-load();
+
+function handleUserBtnClick() {
+  // ユーザーボタンはログアウト確認のみ
+  signOut();
+}
+
+// Auth state change
+auth.onAuthStateChanged(user => {
+  document.getElementById('loadingScreen').classList.remove('open');
+
+  if (unsubscribeSnapshot) {
+    unsubscribeSnapshot();
+    unsubscribeSnapshot = null;
+  }
+
+  if (user) {
+    currentUser = user;
+    document.getElementById('loginOverlay').classList.remove('open');
+
+    // ユーザー名表示
+    const displayName = user.displayName ? user.displayName.split(' ')[0] : 'ユーザー';
+    const userBtn = document.getElementById('userBtn');
+    userBtn.textContent = displayName + ' ▾';
+    userBtn.style.display = '';
+    document.getElementById('signoutLink').style.display = '';
+
+    // Firestoreリスナー
+    entriesRef = db.collection('users').doc(user.uid).collection('entries');
+    unsubscribeSnapshot = entriesRef.onSnapshot(snapshot => {
+      data = [];
+      snapshot.forEach(doc => {
+        data.push({ id: doc.id, ...doc.data() });
+      });
+      renderAll();
+    }, err => {
+      console.error('Firestore error:', err);
+    });
+
+  } else {
+    currentUser = null;
+    entriesRef = null;
+    data = [];
+    document.getElementById('loginOverlay').classList.add('open');
+    document.getElementById('userBtn').style.display = 'none';
+    document.getElementById('signoutLink').style.display = 'none';
+    renderAll();
+  }
+});
 
 // ===== MODAL =====
 function openModal(entry) {
+  if (!currentUser) return;
   editingId = entry ? entry.id : null;
   document.getElementById('modalTitle').textContent = entry ? '価格を編集' : '価格を追加';
   document.getElementById('fProduct').value = entry ? entry.product : '';
@@ -587,7 +812,8 @@ function todayStr() {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
-function saveEntry() {
+async function saveEntry() {
+  if (!entriesRef) return;
   const product = document.getElementById('fProduct').value.trim();
   const store = document.getElementById('fStore').value.trim();
   const price = parseInt(document.getElementById('fPrice').value);
@@ -596,24 +822,47 @@ function saveEntry() {
     alert('商品名・お店・値段・日付は必須です');
     return;
   }
-  if (editingId) {
-    const idx = data.findIndex(e => e.id === editingId);
-    if (idx !== -1) {
-      data[idx] = { ...data[idx], product, category: document.getElementById('fCategory').value, store, price, date, sale: document.getElementById('fSale').checked, note: document.getElementById('fNote').value.trim(), updated: Date.now() };
+
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '保存中...';
+
+  const entryData = {
+    product,
+    category: document.getElementById('fCategory').value,
+    store,
+    price,
+    date,
+    sale: document.getElementById('fSale').checked,
+    note: document.getElementById('fNote').value.trim(),
+    updated: Date.now()
+  };
+
+  try {
+    if (editingId) {
+      await entriesRef.doc(editingId).update(entryData);
+    } else {
+      await entriesRef.add(entryData);
     }
-  } else {
-    data.push({ id: Date.now().toString(), product, category: document.getElementById('fCategory').value, store, price, date, sale: document.getElementById('fSale').checked, note: document.getElementById('fNote').value.trim(), updated: Date.now() });
+    closeModal();
+  } catch (err) {
+    console.error(err);
+    alert('保存に失敗しました: ' + err.message);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = '保存する';
   }
-  save();
-  closeModal();
-  renderAll();
 }
 
-function deleteEntry(id) {
+async function deleteEntry(id) {
   if (!confirm('この記録を削除しますか？')) return;
-  data = data.filter(e => e.id !== id);
-  save();
-  renderAll();
+  if (!entriesRef) return;
+  try {
+    await entriesRef.doc(id).delete();
+  } catch (err) {
+    console.error(err);
+    alert('削除に失敗しました: ' + err.message);
+  }
 }
 
 // ===== TABS / SORT =====
@@ -643,7 +892,6 @@ function showSuggest() {
 function selectSuggest(name) {
   document.getElementById('fProduct').value = name;
   document.getElementById('suggestList').classList.remove('open');
-  // auto-fill category if known
   const ex = data.find(e => e.product === name);
   if (ex && ex.category) document.getElementById('fCategory').value = ex.category;
 }
@@ -691,6 +939,10 @@ function renderAll() {
   document.getElementById('resultCount').textContent = groupKeys.length ? `${groupKeys.length}商品` : '';
 
   const area = document.getElementById('listArea');
+  if (!currentUser) {
+    area.innerHTML = '';
+    return;
+  }
   if (!groupKeys.length) {
     area.innerHTML = `<div class="empty">
       <div class="empty-icon">🛒</div>
@@ -744,8 +996,6 @@ function renderAll() {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-renderAll();
 </script>
 </body>
 </html>
