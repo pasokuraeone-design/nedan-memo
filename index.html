@@ -326,7 +326,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
+    max-width: 160px;
   }
   .price-date {
     font-size: 11px;
@@ -405,6 +405,8 @@
     max-width: 480px;
     margin: 0 auto;
     animation: slideUp 0.25s ease;
+    max-height: 90vh;
+    overflow-y: auto;
   }
   @keyframes slideUp {
     from { transform: translateY(100%); }
@@ -447,6 +449,9 @@
     -webkit-appearance: none;
   }
   .field input:focus, .field select:focus { border-color: var(--red); }
+  .field-sub-input {
+    margin-top: 8px;
+  }
 
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
@@ -500,25 +505,6 @@
     cursor: not-allowed;
   }
 
-  .suggest-list {
-    background: #fff;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    margin-top: -10px;
-    margin-bottom: 14px;
-    overflow: hidden;
-    display: none;
-  }
-  .suggest-list.open { display: block; }
-  .suggest-item {
-    padding: 10px 14px;
-    font-size: 14px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--border);
-  }
-  .suggest-item:last-child { border-bottom: none; }
-  .suggest-item:hover { background: var(--cream); }
-
   /* ===== SORT/FILTER ===== */
   .toolbar {
     display: flex;
@@ -555,7 +541,7 @@
     white-space: nowrap;
   }
 
-  /* ===== SIGN OUT CONFIRM ===== */
+  /* ===== SIGN OUT ===== */
   .signout-area {
     text-align: center;
     padding: 40px 20px 20px;
@@ -579,9 +565,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <script>
-// ============================================================
-// ★ ここにFirebaseコンソールの設定を貼り付けてください ★
-// ============================================================
 const firebaseConfig = {
   apiKey: "AIzaSyB_rdG_JAzNBXZWrbl8n9z6b1aW92zseac",
   authDomain: "nedan-memo-2f5c6.firebaseapp.com",
@@ -590,8 +573,6 @@ const firebaseConfig = {
   messagingSenderId: "450148725653",
   appId: "1:450148725653:web:1da4c0f014fe1d98ddbc9c"
 };
-// ============================================================
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -619,7 +600,7 @@ const db = firebase.firestore();
     <div class="logo"><span>¥</span>ねだんメモ</div>
     <div class="header-right">
       <button class="add-btn" onclick="openModal()">＋ 追加</button>
-      <button class="user-btn" id="userBtn" onclick="handleUserBtnClick()" style="display:none"></button>
+      <button class="user-btn" id="userBtn" onclick="signOut()" style="display:none"></button>
     </div>
   </div>
 </header>
@@ -627,7 +608,7 @@ const db = firebase.firestore();
 <div class="search-bar">
   <div class="search-bar-inner">
     <span class="search-icon">🔍</span>
-    <input type="text" id="searchInput" placeholder="商品名・お店で検索" oninput="renderAll()">
+    <input type="text" id="searchInput" placeholder="商品名・ブランド・お店で検索" oninput="renderAll()">
   </div>
 </div>
 
@@ -658,16 +639,11 @@ const db = firebase.firestore();
     <div class="modal-handle"></div>
     <div class="modal-title" id="modalTitle">価格を追加</div>
 
-    <div class="field">
-      <label>商品名・ブランド</label>
-      <input type="text" id="fProduct" placeholder="例）アタック　抗菌EX 850g" oninput="showSuggest()" autocomplete="off">
-      <div class="suggest-list" id="suggestList"></div>
-    </div>
-
+    <!-- カテゴリ ＋ お店 -->
     <div class="field-row">
       <div class="field">
         <label>カテゴリ</label>
-        <select id="fCategory">
+        <select id="fCategory" onchange="updateProductOptions()">
           <option value="">なし</option>
           <option value="朝食">朝食</option>
           <option value="調味料">調味料</option>
@@ -684,6 +660,23 @@ const db = firebase.firestore();
       </div>
     </div>
 
+    <!-- 商品名 (カテゴリ連動ドロップダウン) -->
+    <div class="field">
+      <label>商品名</label>
+      <select id="fProduct" onchange="onProductChange()">
+        <option value="">カテゴリを先に選択してください</option>
+      </select>
+      <input type="text" id="fProductCustom" class="field-sub-input"
+             placeholder="商品名を入力" style="display:none" autocomplete="off">
+    </div>
+
+    <!-- ブランド -->
+    <div class="field">
+      <label>ブランド（任意）</label>
+      <input type="text" id="fBrand" placeholder="例）シャウエッセン、トップバリュ">
+    </div>
+
+    <!-- 値段 ＋ 日付 -->
     <div class="field-row">
       <div class="field">
         <label>値段（円）</label>
@@ -713,6 +706,16 @@ const db = firebase.firestore();
 </div>
 
 <script>
+// ===== 品名マスター =====
+const PRODUCTS = {
+  '朝食':  ['卵','ウインナー','食パン','マーガリン','ジャム','スープ','麦茶','米','ベーコン','ハム','冷凍ブロッコリー','冷凍ホウレンソウ','増えるわかめ','キャベツ','肉団子'],
+  '調味料': ['醤油','サラダ油','みりん','酢','かつおぶし','マヨネーズ','ケチャップ','塩コショウ','白だし','料理酒','おにぎり用ふりかけ','鶏がらスープ','しょうが','片栗粉','黒コショウ','コンソメ'],
+  'キッチン': ['食器用洗剤','サランラップ大','排水口水切りネット','キッチンブリーチ','使い捨て手袋'],
+  '洗面所': ['ハンドソープ','歯磨き粉','洗濯洗剤','ボディーソープ','シャンプー'],
+  'トイレ':  ['トイレットペーパー','掃除洗剤','トイレシート'],
+  'リビング': ['ボックスティッシュ','除菌スプレー','フローリング用ウェットペーパー'],
+};
+
 // ===== STATE =====
 let data = [];
 let editingId = null;
@@ -726,57 +729,34 @@ let unsubscribeSnapshot = null;
 function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).catch(err => {
-    console.error(err);
     alert('ログインに失敗しました: ' + err.message);
   });
 }
-
 function signOut() {
   if (!confirm('ログアウトしますか？')) return;
   auth.signOut();
 }
 
-function handleUserBtnClick() {
-  // ユーザーボタンはログアウト確認のみ
-  signOut();
-}
-
-// Auth state change
 auth.onAuthStateChanged(user => {
   document.getElementById('loadingScreen').classList.remove('open');
-
-  if (unsubscribeSnapshot) {
-    unsubscribeSnapshot();
-    unsubscribeSnapshot = null;
-  }
+  if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
 
   if (user) {
     currentUser = user;
     document.getElementById('loginOverlay').classList.remove('open');
-
-    // ユーザー名表示
-    const displayName = user.displayName ? user.displayName.split(' ')[0] : 'ユーザー';
-    const userBtn = document.getElementById('userBtn');
-    userBtn.textContent = displayName + ' ▾';
-    userBtn.style.display = '';
+    const name = user.displayName ? user.displayName.split(' ')[0] : 'ユーザー';
+    const btn = document.getElementById('userBtn');
+    btn.textContent = name + ' ▾';
+    btn.style.display = '';
     document.getElementById('signoutLink').style.display = '';
-
-    // Firestoreリスナー
     entriesRef = db.collection('users').doc(user.uid).collection('entries');
     unsubscribeSnapshot = entriesRef.onSnapshot(snapshot => {
       data = [];
-      snapshot.forEach(doc => {
-        data.push({ id: doc.id, ...doc.data() });
-      });
+      snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
       renderAll();
-    }, err => {
-      console.error('Firestore error:', err);
-    });
-
+    }, err => console.error('Firestore error:', err));
   } else {
-    currentUser = null;
-    entriesRef = null;
-    data = [];
+    currentUser = null; entriesRef = null; data = [];
     document.getElementById('loginOverlay').classList.add('open');
     document.getElementById('userBtn').style.display = 'none';
     document.getElementById('signoutLink').style.display = 'none';
@@ -784,27 +764,79 @@ auth.onAuthStateChanged(user => {
   }
 });
 
+// ===== 品名ドロップダウン =====
+function updateProductOptions() {
+  const cat = document.getElementById('fCategory').value;
+  const sel = document.getElementById('fProduct');
+  const custom = document.getElementById('fProductCustom');
+  const list = PRODUCTS[cat] || [];
+
+  if (list.length > 0) {
+    sel.innerHTML = '<option value="">選択してください</option>' +
+      list.map(p => `<option value="${p}">${p}</option>`).join('') +
+      '<option value="__custom__">その他（直接入力）</option>';
+    sel.style.display = '';
+    custom.style.display = 'none';
+    custom.value = '';
+  } else {
+    // カテゴリ未選択 or その他 → テキスト入力
+    sel.innerHTML = '';
+    sel.style.display = 'none';
+    custom.style.display = '';
+  }
+}
+
+function onProductChange() {
+  const sel = document.getElementById('fProduct');
+  const custom = document.getElementById('fProductCustom');
+  if (sel.value === '__custom__') {
+    custom.style.display = '';
+    custom.focus();
+  } else {
+    custom.style.display = 'none';
+    custom.value = '';
+  }
+}
+
 // ===== MODAL =====
 function openModal(entry) {
   if (!currentUser) return;
   editingId = entry ? entry.id : null;
   document.getElementById('modalTitle').textContent = entry ? '価格を編集' : '価格を追加';
-  document.getElementById('fProduct').value = entry ? entry.product : '';
+
+  // カテゴリ → 品名リスト更新
   document.getElementById('fCategory').value = entry ? (entry.category || '') : '';
+  updateProductOptions();
+
+  // 品名をセット
+  const productName = entry ? (entry.product || '') : '';
+  const sel = document.getElementById('fProduct');
+  const custom = document.getElementById('fProductCustom');
+  const inList = productName && Array.from(sel.options).some(o => o.value === productName);
+
+  if (!productName) {
+    if (sel.style.display !== 'none') sel.value = '';
+  } else if (inList) {
+    sel.value = productName;
+    custom.style.display = 'none';
+  } else {
+    // リストにない品名 → 「その他」欄に表示
+    if (sel.style.display !== 'none') sel.value = '__custom__';
+    custom.value = productName;
+    custom.style.display = '';
+  }
+
+  document.getElementById('fBrand').value = entry ? (entry.brand || '') : '';
   document.getElementById('fStore').value = entry ? entry.store : '';
   document.getElementById('fPrice').value = entry ? entry.price : '';
   document.getElementById('fDate').value = entry ? entry.date : todayStr();
   document.getElementById('fSale').checked = entry ? !!entry.sale : false;
   document.getElementById('fNote').value = entry ? (entry.note || '') : '';
-  document.getElementById('suggestList').classList.remove('open');
   document.getElementById('overlay').classList.add('open');
 }
-function closeModal() {
-  document.getElementById('overlay').classList.remove('open');
-}
-function closeModalIfBg(e) {
-  if (e.target === document.getElementById('overlay')) closeModal();
-}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function closeModalIfBg(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
 
 function todayStr() {
   const d = new Date();
@@ -813,10 +845,24 @@ function todayStr() {
 
 async function saveEntry() {
   if (!entriesRef) return;
-  const product = document.getElementById('fProduct').value.trim();
+
+  // 品名を取得
+  const sel = document.getElementById('fProduct');
+  const custom = document.getElementById('fProductCustom');
+  let product = '';
+  if (sel.style.display === 'none') {
+    product = custom.value.trim();
+  } else if (sel.value === '__custom__') {
+    product = custom.value.trim();
+  } else {
+    product = sel.value;
+  }
+
+  const brand = document.getElementById('fBrand').value.trim();
   const store = document.getElementById('fStore').value.trim();
   const price = parseInt(document.getElementById('fPrice').value);
   const date = document.getElementById('fDate').value;
+
   if (!product || !store || isNaN(price) || !date) {
     alert('商品名・お店・値段・日付は必須です');
     return;
@@ -827,11 +873,9 @@ async function saveEntry() {
   saveBtn.textContent = '保存中...';
 
   const entryData = {
-    product,
+    product, brand,
     category: document.getElementById('fCategory').value,
-    store,
-    price,
-    date,
+    store, price, date,
     sale: document.getElementById('fSale').checked,
     note: document.getElementById('fNote').value.trim(),
     updated: Date.now()
@@ -845,7 +889,6 @@ async function saveEntry() {
     }
     closeModal();
   } catch (err) {
-    console.error(err);
     alert('保存に失敗しました: ' + err.message);
   } finally {
     saveBtn.disabled = false;
@@ -859,7 +902,6 @@ async function deleteEntry(id) {
   try {
     await entriesRef.doc(id).delete();
   } catch (err) {
-    console.error(err);
     alert('削除に失敗しました: ' + err.message);
   }
 }
@@ -878,23 +920,6 @@ function setSort(sort, btn) {
   renderAll();
 }
 
-// ===== SUGGEST =====
-function showSuggest() {
-  const val = document.getElementById('fProduct').value.trim();
-  const list = document.getElementById('suggestList');
-  if (!val) { list.classList.remove('open'); return; }
-  const names = [...new Set(data.map(e => e.product))].filter(n => n.includes(val) && n !== val);
-  if (!names.length) { list.classList.remove('open'); return; }
-  list.innerHTML = names.slice(0,5).map(n => `<div class="suggest-item" onclick="selectSuggest('${n.replace(/'/g,"\\'")}')">  ${n}</div>`).join('');
-  list.classList.add('open');
-}
-function selectSuggest(name) {
-  document.getElementById('fProduct').value = name;
-  document.getElementById('suggestList').classList.remove('open');
-  const ex = data.find(e => e.product === name);
-  if (ex && ex.category) document.getElementById('fCategory').value = ex.category;
-}
-
 // ===== RENDER =====
 function renderAll() {
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -902,9 +927,7 @@ function renderAll() {
   let filtered = data.filter(e => {
     if (currentTab === 'sale') return e.sale;
     if (currentTab === 'recent') {
-      const d = new Date(e.date);
-      const now = new Date();
-      const diff = (now - d) / (1000*60*60*24);
+      const diff = (new Date() - new Date(e.date)) / (1000*60*60*24);
       return diff <= 14;
     }
     return true;
@@ -914,18 +937,18 @@ function renderAll() {
     filtered = filtered.filter(e =>
       e.product.toLowerCase().includes(q) ||
       e.store.toLowerCase().includes(q) ||
+      (e.brand && e.brand.toLowerCase().includes(q)) ||
       (e.category && e.category.toLowerCase().includes(q))
     );
   }
 
-  // Group by product
+  // 商品名でグループ化
   const groups = {};
   filtered.forEach(e => {
     if (!groups[e.product]) groups[e.product] = [];
     groups[e.product].push(e);
   });
 
-  // Sort groups
   let groupKeys = Object.keys(groups);
   if (currentSort === 'cheapest') {
     groupKeys.sort((a,b) => Math.min(...groups[a].map(e=>e.price)) - Math.min(...groups[b].map(e=>e.price)));
@@ -938,10 +961,7 @@ function renderAll() {
   document.getElementById('resultCount').textContent = groupKeys.length ? `${groupKeys.length}商品` : '';
 
   const area = document.getElementById('listArea');
-  if (!currentUser) {
-    area.innerHTML = '';
-    return;
-  }
+  if (!currentUser) { area.innerHTML = ''; return; }
   if (!groupKeys.length) {
     area.innerHTML = `<div class="empty">
       <div class="empty-icon">🛒</div>
@@ -961,11 +981,12 @@ function renderAll() {
       const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-3';
       const rankLabel = i === 0 ? '最安' : `${i+1}位`;
       const dateLabel = e.date ? e.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$2/$3') : '';
+      const storeLabel = e.brand ? `${esc(e.brand)}・${esc(e.store)}` : esc(e.store);
       return `<div class="price-row">
         <div class="price-rank ${rankClass}">${rankLabel}</div>
         <div class="price-bar-wrap">
           <div class="store-date-row">
-            <span class="store-name">${esc(e.store)}</span>
+            <span class="store-name">${storeLabel}</span>
             <span class="price-date">${dateLabel}${e.note ? ' · '+esc(e.note) : ''}</span>
           </div>
           <div class="price-bar-bg">
