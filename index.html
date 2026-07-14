@@ -367,6 +367,15 @@
     flex: 1;
     min-width: 0;
   }
+  .brand-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .store-date-row {
     display: flex;
     justify-content: space-between;
@@ -1023,12 +1032,12 @@ function renderAll() {
       const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-3';
       const rankLabel = i === 0 ? '最安' : `${i+1}位`;
       const dateLabel = e.date ? e.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$2/$3') : '';
-      const storeLabel = e.brand ? `${esc(e.brand)}・${esc(e.store)}` : esc(e.store);
       return `<div class="price-row">
         <div class="price-rank ${rankClass}">${rankLabel}</div>
         <div class="price-bar-wrap">
+          ${e.brand ? `<div class="brand-name">${esc(e.brand)}</div>` : ''}
           <div class="store-date-row">
-            <span class="store-name">${storeLabel}</span>
+            <span class="store-name">${esc(e.store)}</span>
             <span class="price-date">${dateLabel}${e.note ? ' · '+esc(e.note) : ''}</span>
           </div>
           <div class="price-bar-bg">
