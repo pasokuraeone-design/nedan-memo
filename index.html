@@ -263,19 +263,33 @@
     overflow: hidden;
     border: 1px solid var(--border);
   }
+
+  /* ===== ACCORDION HEADER ===== */
   .product-header {
-    padding: 12px 14px 10px;
-    border-bottom: 1px solid var(--border);
+    padding: 12px 14px 12px;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .product-header:active { background: #FFF0EE; }
+  .product-group.open .product-header {
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left {
+    flex: 1;
+    min-width: 0;
   }
   .product-name {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     line-height: 1.3;
-    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .product-category {
     font-size: 11px;
@@ -284,11 +298,49 @@
     padding: 2px 8px;
     color: var(--gray);
     white-space: nowrap;
-    margin-top: 2px;
+    display: inline-block;
+    margin-top: 3px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .best-price {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--red);
+    white-space: nowrap;
+  }
+  .store-count-badge {
+    font-size: 11px;
+    color: var(--gray);
+    background: #F0F0F0;
+    border-radius: 10px;
+    padding: 2px 7px;
+    white-space: nowrap;
+  }
+  .chevron {
+    font-size: 11px;
+    color: var(--gray);
+    transition: transform 0.2s ease;
+    display: inline-block;
+    margin-left: 2px;
+  }
+  .product-group.open .chevron {
+    transform: rotate(180deg);
   }
 
-  /* ===== PRICE ROWS ===== */
-  .price-rows { padding: 8px 0 4px; }
+  /* ===== PRICE ROWS (accordion body) ===== */
+  .price-rows {
+    display: none;
+    padding: 6px 0 4px;
+  }
+  .product-group.open .price-rows {
+    display: block;
+  }
+
   .price-row {
     padding: 7px 14px;
     display: flex;
@@ -449,9 +501,7 @@
     -webkit-appearance: none;
   }
   .field input:focus, .field select:focus { border-color: var(--red); }
-  .field-sub-input {
-    margin-top: 8px;
-  }
+  .field-sub-input { margin-top: 8px; }
 
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
@@ -500,10 +550,7 @@
     cursor: pointer;
     font-family: inherit;
   }
-  .btn-save:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
+  .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
 
   /* ===== SORT/FILTER ===== */
   .toolbar {
@@ -533,7 +580,6 @@
     border-color: var(--red);
     color: #fff;
   }
-
   .result-count {
     font-size: 12px;
     color: var(--gray);
@@ -542,10 +588,7 @@
   }
 
   /* ===== SIGN OUT ===== */
-  .signout-area {
-    text-align: center;
-    padding: 40px 20px 20px;
-  }
+  .signout-area { text-align: center; padding: 40px 20px 20px; }
   .signout-link {
     font-size: 12px;
     color: var(--gray);
@@ -639,7 +682,6 @@ const db = firebase.firestore();
     <div class="modal-handle"></div>
     <div class="modal-title" id="modalTitle">価格を追加</div>
 
-    <!-- カテゴリ ＋ お店 -->
     <div class="field-row">
       <div class="field">
         <label>カテゴリ</label>
@@ -660,7 +702,6 @@ const db = firebase.firestore();
       </div>
     </div>
 
-    <!-- 商品名 (カテゴリ連動ドロップダウン) -->
     <div class="field">
       <label>商品名</label>
       <select id="fProduct" onchange="onProductChange()">
@@ -670,13 +711,11 @@ const db = firebase.firestore();
              placeholder="商品名を入力" style="display:none" autocomplete="off">
     </div>
 
-    <!-- ブランド -->
     <div class="field">
       <label>ブランド（任意）</label>
       <input type="text" id="fBrand" placeholder="例）シャウエッセン、トップバリュ">
     </div>
 
-    <!-- 値段 ＋ 日付 -->
     <div class="field-row">
       <div class="field">
         <label>値段（円）</label>
@@ -779,7 +818,6 @@ function updateProductOptions() {
     custom.style.display = 'none';
     custom.value = '';
   } else {
-    // カテゴリ未選択 or その他 → テキスト入力
     sel.innerHTML = '';
     sel.style.display = 'none';
     custom.style.display = '';
@@ -804,11 +842,9 @@ function openModal(entry) {
   editingId = entry ? entry.id : null;
   document.getElementById('modalTitle').textContent = entry ? '価格を編集' : '価格を追加';
 
-  // カテゴリ → 品名リスト更新
   document.getElementById('fCategory').value = entry ? (entry.category || '') : '';
   updateProductOptions();
 
-  // 品名をセット
   const productName = entry ? (entry.product || '') : '';
   const sel = document.getElementById('fProduct');
   const custom = document.getElementById('fProductCustom');
@@ -820,7 +856,6 @@ function openModal(entry) {
     sel.value = productName;
     custom.style.display = 'none';
   } else {
-    // リストにない品名 → 「その他」欄に表示
     if (sel.style.display !== 'none') sel.value = '__custom__';
     custom.value = productName;
     custom.style.display = '';
@@ -846,7 +881,6 @@ function todayStr() {
 async function saveEntry() {
   if (!entriesRef) return;
 
-  // 品名を取得
   const sel = document.getElementById('fProduct');
   const custom = document.getElementById('fProductCustom');
   let product = '';
@@ -920,6 +954,12 @@ function setSort(sort, btn) {
   renderAll();
 }
 
+// ===== ACCORDION =====
+function toggleGroup(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
 // ===== RENDER =====
 function renderAll() {
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -942,7 +982,6 @@ function renderAll() {
     );
   }
 
-  // 商品名でグループ化
   const groups = {};
   filtered.forEach(e => {
     if (!groups[e.product]) groups[e.product] = [];
@@ -975,6 +1014,8 @@ function renderAll() {
     const minPrice = entries[0].price;
     const maxPrice = entries[entries.length-1].price;
     const category = entries[0].category || '';
+    const storeCount = entries.length;
+    const groupId = 'grp_' + btoa(encodeURIComponent(product)).replace(/[^a-zA-Z0-9]/g,'').slice(0,16) + '_' + Math.random().toString(36).slice(2,6);
 
     const priceRows = entries.map((e, i) => {
       const barPct = maxPrice === minPrice ? 100 : Math.round(((e.price - minPrice) / (maxPrice - minPrice)) * 80 + 20);
@@ -997,16 +1038,23 @@ function renderAll() {
           ¥${e.price.toLocaleString()}${e.sale?'<span class="sale-badge">特売</span>':''}
         </div>
         <div class="price-row-actions">
-          <button class="icon-btn" onclick="openModal(${JSON.stringify(e).replace(/"/g,'&quot;')})" title="編集">✏️</button>
-          <button class="icon-btn" onclick="deleteEntry('${e.id}')" title="削除">🗑️</button>
+          <button class="icon-btn" onclick="event.stopPropagation();openModal(${JSON.stringify(e).replace(/"/g,'&quot;')})" title="編集">✏️</button>
+          <button class="icon-btn" onclick="event.stopPropagation();deleteEntry('${e.id}')" title="削除">🗑️</button>
         </div>
       </div>`;
     }).join('');
 
-    return `<div class="product-group">
-      <div class="product-header">
-        <div class="product-name">${esc(product)}</div>
-        ${category ? `<span class="product-category">${esc(category)}</span>` : ''}
+    return `<div class="product-group" id="${groupId}">
+      <div class="product-header" onclick="toggleGroup('${groupId}')">
+        <div class="header-left">
+          <div class="product-name">${esc(product)}</div>
+          ${category ? `<span class="product-category">${esc(category)}</span>` : ''}
+        </div>
+        <div class="header-right">
+          <span class="best-price">¥${minPrice.toLocaleString()}</span>
+          ${storeCount > 1 ? `<span class="store-count-badge">${storeCount}店舗</span>` : ''}
+          <span class="chevron">▼</span>
+        </div>
       </div>
       <div class="price-rows">${priceRows}</div>
     </div>`;
